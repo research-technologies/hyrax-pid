@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
 #  spec.description = "TODO: Write a longer description or delete this line."
   spec.homepage = "https://github.com/research-technologies/hyrax-pid"
   spec.required_ruby_version = ">= 3.2.0"
-  spec.metadata["allowed_push_host"] = "https://github.com/research-technologies/hyrax-pid"
+#  spec.metadata["allowed_push_host"] = ""
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/research-technologies/hyrax-pid"
 
