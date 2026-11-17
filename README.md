@@ -20,10 +20,10 @@ application.
   `:doi` to a lazily-built, configured minter, so credentials and sandbox vs.
   production settings are resolved at call time, not at load time.
 
-The core has no runtime dependencies and no knowledge of Hyrax. An optional
-`Hyrax::Pid::Registrar` bridges into Hyrax's own identifier framework
-(`Hyrax::Identifier::Dispatcher` / `Hyrax.config.identifier_registrars`), so
-it can replace or sit beside existing registrars with no further glue.
+It's a Rails engine for Hyrax 5. It plugs into Hyrax's own identifier framework
+(`Hyrax::Identifier::Dispatcher` / `Hyrax.config.identifier_registrars`) under
+the `:doi` key, alongside any other registrars, and adds an admin-only
+"Mint DOI" button that can be switched on and off per tenant.
 
 This is deliberately smaller than [hyrax-doi](https://github.com/samvera-labs/hyrax-doi):
 no actors, no Bolognese crosswalk, no assumptions about which attributes your
@@ -73,8 +73,33 @@ end
 `:doi` is registered automatically and resolves to a DataCite minter built from
 this configuration each time it's requested.
 
+### Store the DOI on works
 
-### Mint
+Works need a single-valued `doi` attribute. With flexible metadata, add a `doi`
+property to your M3 profile; otherwise add one to your work models.
+
+### Add the "Mint DOI" button
+
+The engine mounts itself at `/pid`, so no route changes are needed. Render the
+button wherever you want it, typically in an override of
+`app/views/hyrax/base/_show_actions.html.erb`:
+
+```erb
+<%= render 'hyrax/pid/mint_button', presenter: presenter %>
+```
+
+The button only appears for admins, and only once the **Mint DOI** feature
+(`mint_doi`, off by default) is turned on in the dashboard's Features page
+(`/admin/features`). In Hyku
+this is per tenant. It also stays hidden while Hyrax's read-only mode is on.
+
+The feature switch is not access control: Flipflop lets anyone force a feature
+on for themselves with a cookie. Admin rights are what restrict minting.
+
+Minting sends the work's page on the current host as the DOI's landing page
+`url`, which DataCite needs before a DOI can be made findable.
+
+### Mint from code
 
 ```ruby
 work     = Hyrax.query_service.find_by(id: id)
@@ -90,26 +115,14 @@ DOIs are minted as drafts. Once the record has a landing page URL and complete
 metadata, `minter.publish(identifier: doi)` makes it findable.
 -->
 
-Optional: plug into Hyrax's identifier framework
-
-To use Hyrax::Identifier::Dispatcher (as hyrax-doi and other registrars do),
-register the bridge in the same initializer:
+Or through Hyrax's identifier framework, which mints (or updates, if the work
+already has a DOI) and saves the work in one call:
 
 ```ruby
-Rails.application.config.to_prepare do
-  require "hyrax/pid/registrar"
-  Hyrax.config.identifier_registrars = { doi: Hyrax::Pid::Registrar }
-end
+Hyrax::Identifier::Dispatcher
+  .for(:doi, landing_page_url: ->(work) { main_app.polymorphic_url(work) })
+  .assign_for!(object: work, attribute: :doi)
 ```
-
-Then minting-or-updating and persisting is one call:
-
-```rub
-Hyrax::Identifier::Dispatcher.for(:doi).assign_for!(object: work, attribute: :doi)
-```
-
-The work needs a doi attribute to store the result; add one to your model or
-M3 profile if it doesn't exist.
 
 
 

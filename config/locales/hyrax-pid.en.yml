@@ -1,0 +1,10 @@
+en:
+  hyrax:
+    pid:
+      dois:
+        create:
+          success: "Minted DOI %{doi}. Submitted to DataCite — %{summary}"
+          not_found: "Could not find that record to mint a DOI."
+          failure: "Could not mint a DOI: %{message}"
+      mint_button:
+        label: "Mint DOI"

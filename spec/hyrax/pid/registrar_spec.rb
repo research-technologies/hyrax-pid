@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Hyrax isn't a dependency of this gem, so stand in for the base class with
-# the same shape Hyrax::Identifier::Registrar has (builder: kwarg, builder
+# Specs run without booting Hyrax, so stand in for the base class with the
+# same shape Hyrax::Identifier::Registrar has (builder: kwarg, builder
 # accessor, abstract #register!).
 module Hyrax
   module Identifier
@@ -78,6 +78,16 @@ RSpec.describe Hyrax::Pid::Registrar do
     it "mints when the work has no such attribute at all" do
       work = Object.new
       expect(minter).to receive(:mint).and_return(minted)
+
+      registrar.register!(object: work)
+    end
+
+    it "adds the landing page url when given one" do
+      registrar = described_class.new(mapper: mapper, landing_page_url: ->(w) { "https://example.org/works/#{w.id}" })
+      work = Struct.new(:id, :doi).new("abc", nil)
+      expect(minter).to receive(:mint)
+        .with(metadata: metadata.merge(url: "https://example.org/works/abc"))
+        .and_return(minted)
 
       registrar.register!(object: work)
     end

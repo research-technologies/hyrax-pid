@@ -9,6 +9,8 @@ require_relative "pid/configuration"
 require_relative "pid/data_cite/client"
 require_relative "pid/data_cite/metadata_mapper"
 require_relative "pid/data_cite/minter"
+# Skipped outside Rails so the core specs run without booting an app.
+require_relative "pid/engine" if defined?(Rails::Engine)
 
 module Hyrax
   module Pid

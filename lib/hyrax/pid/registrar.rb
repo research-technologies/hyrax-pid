@@ -1,40 +1,39 @@
 # frozen_string_literal: true
 
-# Not required by lib/hyrax/pid.rb: it subclasses Hyrax::Identifier::Registrar,
-# so it only loads inside a Hyrax app. Hosts require it explicitly, e.g.
-#
-#   Rails.application.config.to_prepare do
-#     require "hyrax/pid/registrar"
-#     Hyrax.config.identifier_registrars = { doi: Hyrax::Pid::Registrar }
-#   end
-#
-# after which Hyrax::Identifier::Dispatcher.for(:doi).assign_for!(object:, attribute: :doi)
-# mints (or updates) through this gem's Registry/Minter.
+# Loaded and registered as Hyrax.config.identifier_registrars[:doi] by
+# Hyrax::Pid::Engine; it subclasses a Hyrax class, so it can't load earlier.
 module Hyrax
   module Pid
     class Registrar < ::Hyrax::Identifier::Registrar
       Record = Struct.new(:identifier)
 
-      attr_reader :key, :attribute, :mapper
+      attr_reader :key, :attribute, :mapper, :landing_page_url
 
       # @param key       [Symbol] Hyrax::Pid::Registry key
       # @param attribute [Symbol] the work attribute holding any existing identifier
       # @param mapper    [#build] turns a work into the minter's metadata payload
+      # @param landing_page_url [#call, nil] work -> URL the identifier resolves to.
+      #   DataCite requires one before a DOI can be made findable. Passed per call
+      #   rather than configured, because the right host (per tenant in Hyku)
+      #   is only known from the current request.
       # @param builder   accepted for Hyrax::Identifier::Registrar's interface; unused,
       #   since remote services (DataCite, RAiD) mint the identifier string themselves
       def initialize(key: :doi, attribute: :doi,
                      mapper: Hyrax::Pid.configuration.data_cite.metadata_mapper,
+                     landing_page_url: nil,
                      builder: nil)
         super(builder: builder)
         @key = key
         @attribute = attribute
         @mapper = mapper
+        @landing_page_url = landing_page_url
       end
 
       # @param object [Object] the work
       # @return [Record] responds to #identifier, per Hyrax::Identifier::Registrar
       def register!(object:)
         metadata = mapper.build(object)
+        metadata = metadata.merge(url: landing_page_url.call(object)) if landing_page_url
         existing = existing_identifier(object)
 
         identifier =

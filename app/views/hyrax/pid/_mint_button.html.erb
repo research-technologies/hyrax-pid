@@ -1,0 +1,5 @@
+<%# Render from a host's show-actions partial: render 'hyrax/pid/mint_button', presenter: presenter %>
+<% if presenter.current_ability.can?(:manage, :pid) %>
+  <%= button_to t('.label'), hyrax_pid.mint_doi_path(presenter),
+      method: :post, class: 'btn btn-secondary', form: { data: { turbo: false } } %>
+<% end %>
