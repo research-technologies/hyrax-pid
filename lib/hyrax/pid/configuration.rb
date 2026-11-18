@@ -2,15 +2,11 @@
 
 module Hyrax
   module Pid
-    # Holds per-service settings (credentials, sandbox vs. production,
-    # etc.) so a host application can configure a service once, via
-    # Hyrax::Pid.configure, and have its Minter built lazily from that
-    # configuration whenever the Registry resolves it.
+    # Code-level settings set once by the host application via
+    # Hyrax::Pid.configure. Credentials aren't here: admins enter them per
+    # tenant on the PID services settings page (Hyrax::Pid::Service).
     class Configuration
-      # Settings for Hyrax::Pid::DataCite::Minter.
       class DataCite
-        attr_accessor :prefix, :username, :password, :sandbox
-
         # @!attribute client
         #   @return [#call, nil] overrides the Minter's default Net::HTTP
         #     client, e.g. with a fake/stub for a demo or test environment.
@@ -25,13 +21,7 @@ module Hyrax
         attr_accessor :field_mapping
 
         def initialize
-          @sandbox = false
           @field_mapping = {}
-        end
-
-        # @return [Hyrax::Pid::DataCite::Minter]
-        def minter
-          Hyrax::Pid::DataCite::Minter.new(prefix: prefix, username: username, password: password, sandbox: sandbox, client: client)
         end
 
         # @return [Hyrax::Pid::DataCite::MetadataMapper]

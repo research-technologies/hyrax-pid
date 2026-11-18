@@ -36,6 +36,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "hyrax", ">= 5.0", "< 6"
+  # Active Record encryption of serialized attributes.
+  spec.add_dependency "rails", ">= 7.1"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://guides.rubygems.org/make-your-own-gem/

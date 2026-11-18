@@ -1,0 +1,47 @@
+<% provide :page_title, t('.header') %>
+<% content_for :page_header do %>
+  <h1><span class="fa fa-key" aria-hidden="true"></span> <%= t('.header') %></h1>
+<% end %>
+
+<div class="card">
+  <div class="card-body">
+    <p><%= t('.intro') %></p>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th><%= t('.service') %></th>
+          <th><%= t('.status') %></th>
+          <th><%= t('.mode') %></th>
+          <th><%= t('.updated_at') %></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @definitions.each do |definition| %>
+          <% service = @services[definition.key] %>
+          <tr>
+            <td><%= definition.label %></td>
+            <td>
+              <% if service&.configured? %>
+                <span class="badge badge-success"><%= t('.configured') %></span>
+              <% else %>
+                <span class="badge badge-secondary"><%= t('.not_configured') %></span>
+              <% end %>
+            </td>
+            <td><%= service ? (service.sandbox? ? t('.sandbox') : t('.production')) : '' %></td>
+            <td><%= service&.updated_at %></td>
+            <td class="text-right">
+              <%= link_to t('.edit'), edit_admin_service_path(definition.key), class: 'btn btn-secondary btn-sm' %>
+              <% if service %>
+                <%= button_to t('.remove'), admin_service_path(definition.key),
+                      method: :delete, class: 'btn btn-danger btn-sm',
+                      form: { class: 'd-inline', data: { turbo: false } },
+                      data: { confirm: t('.remove_confirm', service: definition.label) } %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

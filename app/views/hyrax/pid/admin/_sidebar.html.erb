@@ -1,0 +1,6 @@
+<%# Added to Hyrax::DashboardController.sidebar_partials[:configuration] by Hyrax::Pid::Engine. %>
+<% if can?(:manage, Hyrax::Pid::Service) %>
+  <%= menu.nav_link(hyrax_pid.admin_services_path, class: 'nav-link', title: t('hyrax.pid.admin.sidebar.services')) do %>
+    <span class="fa fa-key" aria-hidden="true"></span> <span class="sidebar-action-text"><%= t('hyrax.pid.admin.sidebar.services') %></span>
+  <% end %>
+<% end %>

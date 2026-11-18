@@ -44,18 +44,37 @@ Hyku Knapsack: Add line to a file under bundler.d/ (e.g. bundler.d/hyrax_pid.rb)
 
 ## Usage
 
-### Configure a minter
+### Set up the database and encryption keys
 
-Create config/initializers/hyrax_pid.rb:
+The engine runs its own migration (a `hyrax_pid_services` table) as part of
+`bin/rails db:migrate`; in Hyku that creates it in every tenant.
+
+Service passwords are stored with Rails' Active Record encryption, which needs
+keys. Generate them with `bin/rails db:encryption:init`, then either put them in
+your Rails credentials as that command suggests, or set them as environment
+variables:
+
+```
+ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=...
+ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT=...
+```
+
+Keep the keys safe and the same across deploys: if they change, stored
+credentials can't be read and have to be entered again.
+
+### Enter credentials
+
+Admins enter each service's credentials under *Configuration → PID services* in
+the dashboard (`/pid/admin/services`). In Hyku these are per tenant. New
+settings default to DataCite's test system; untick *sandbox* to mint real DOIs.
+
+### Map your metadata
+
+Create `config/initializers/hyrax_pid.rb`:
 
 ```ruby
 Rails.application.config.to_prepare do
   Hyrax::Pid.configure do |config|
-    config.data_cite.prefix   = ENV.fetch("DATACITE_PREFIX")
-    config.data_cite.username = ENV.fetch("DATACITE_USERNAME")
-    config.data_cite.password = ENV.fetch("DATACITE_PASSWORD")
-    config.data_cite.sandbox  = !Rails.env.production?
-
     # How to read DataCite's required fields off a work. A Symbol is called as
     # a method on the work, a callable is called with the work, anything else
     # is used as a literal.
@@ -66,12 +85,15 @@ Rails.application.config.to_prepare do
       publication_year: ->(work) { Array(work.date_created).first.to_s[/\d{4}/] },
       resource_type_general: "Other"
     }
+
+    # Optional: replace the HTTP client, e.g. with a fake for demos and tests.
+    # config.data_cite.client = MyFakeClient.new
   end
 end
 ```
 
-`:doi` is registered automatically and resolves to a DataCite minter built from
-this configuration each time it's requested.
+`:doi` resolves to a DataCite minter built from the current tenant's saved
+settings each time it's requested.
 
 ### Store the DOI on works
 
@@ -88,7 +110,7 @@ button wherever you want it, typically in an override of
 <%= render 'hyrax/pid/mint_button', presenter: presenter %>
 ```
 
-The button only appears for admins, and only once the **Mint DOI** feature
+The button only appears for admins, once DataCite has been configured, and once the **Mint DOI** feature
 (`mint_doi`, off by default) is turned on in the dashboard's Features page
 (`/admin/features`). In Hyku
 this is per tenant. It also stays hidden while Hyrax's read-only mode is on.

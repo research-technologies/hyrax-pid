@@ -1,4 +1,10 @@
 en:
+  activerecord:
+    attributes:
+      hyrax/pid/service:
+        prefix: "DOI prefix"
+        username: "Repository account ID"
+        password: "Password"
   hyrax:
     pid:
       dois:
@@ -8,3 +14,38 @@ en:
           failure: "Could not mint a DOI: %{message}"
       mint_button:
         label: "Mint DOI"
+      admin:
+        sidebar:
+          services: "PID services"
+        services:
+          encryption_error: "Stored credentials couldn't be read or written (%{error}). Check that the Active Record encryption keys are set."
+          fields:
+            datacite:
+              prefix: "DOI prefix"
+              username: "Repository account ID"
+              password: "Password"
+              sandbox: "Use the DataCite test system (sandbox)"
+          index:
+            header: "PID services"
+            intro: "Credentials for the services that mint persistent identifiers for this repository. Passwords are stored encrypted and never displayed."
+            service: "Service"
+            status: "Status"
+            mode: "Mode"
+            updated_at: "Last updated"
+            configured: "Configured"
+            not_configured: "Not configured"
+            sandbox: "Sandbox"
+            production: "Production"
+            edit: "Edit"
+            remove: "Remove"
+            remove_confirm: "Remove the %{service} settings? Minting through %{service} will stop until it is configured again."
+          edit:
+            header: "%{service} settings"
+            secret_set: "A value is saved. Leave blank to keep it."
+            secret_not_set: "No value saved yet."
+            cancel: "Cancel"
+            save: "Save"
+          update:
+            success: "%{service} settings saved."
+          destroy:
+            success: "%{service} settings removed."

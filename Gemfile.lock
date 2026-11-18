@@ -3,6 +3,7 @@ PATH
   specs:
     hyrax-pid (0.1.0)
       hyrax (>= 5.0, < 6)
+      rails (>= 7.1)
 
 GEM
   remote: https://rubygems.org/

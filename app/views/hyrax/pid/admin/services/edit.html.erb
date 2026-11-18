@@ -1,0 +1,45 @@
+<% provide :page_title, t('.header', service: @definition.label) %>
+<% content_for :page_header do %>
+  <h1><span class="fa fa-key" aria-hidden="true"></span> <%= t('.header', service: @definition.label) %></h1>
+<% end %>
+
+<div class="card">
+  <%= form_with scope: :service, url: admin_service_path(@definition.key), method: :patch, local: true, data: { turbo: false } do |f| %>
+    <div class="card-body">
+      <% if @service.errors.any? %>
+        <div class="alert alert-danger" role="alert">
+          <ul class="mb-0">
+            <% @service.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <% @definition.fields.each do |field| %>
+        <% label = t("hyrax.pid.admin.services.fields.#{@definition.key}.#{field.name}", default: field.name.humanize) %>
+        <div class="form-group">
+          <% if field.type == :boolean %>
+            <div class="form-check">
+              <%= f.check_box field.name, { class: 'form-check-input', checked: @service.setting(field) == true }, '1', '0' %>
+              <%= f.label field.name, label, class: 'form-check-label' %>
+            </div>
+          <% elsif field.secret %>
+            <%= f.label field.name, label %>
+            <%= f.password_field field.name, class: 'form-control', autocomplete: 'new-password' %>
+            <small class="form-text text-muted">
+              <%= @service.secret_set?(field.name) ? t('.secret_set') : t('.secret_not_set') %>
+            </small>
+          <% else %>
+            <%= f.label field.name, label %>
+            <%= f.text_field field.name, value: @service.setting(field), class: 'form-control', required: field.required %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    <div class="card-footer text-right">
+      <%= link_to t('.cancel'), admin_services_path, class: 'btn btn-secondary' %>
+      <%= f.submit t('.save'), class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>

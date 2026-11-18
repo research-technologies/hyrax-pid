@@ -9,20 +9,18 @@ RSpec.describe Hyrax::Pid do
     after { described_class.instance_variable_set(:@configuration, nil) }
 
     it "yields the shared configuration" do
-      described_class.configure { |config| config.data_cite.prefix = "10.5555" }
-      expect(described_class.configuration.data_cite.prefix).to eq("10.5555")
+      described_class.configure { |config| config.data_cite.field_mapping = {title: :title} }
+      expect(described_class.configuration.data_cite.field_mapping).to eq(title: :title)
     end
   end
 
-  describe "default registrations" do
-    it "registers :doi, resolving to a DataCite minter built from configuration" do
-      described_class.configure do |config|
-        config.data_cite.prefix = "10.5555"
-        config.data_cite.username = "user"
-        config.data_cite.password = "pass"
-      end
+  describe ".service_definition" do
+    it "finds a service by key" do
+      expect(described_class.service_definition(:datacite).label).to eq("DataCite")
+    end
 
-      expect(Hyrax::Pid::Registry.minter_for(:doi)).to be_a(Hyrax::Pid::DataCite::Minter)
+    it "raises for an unknown service" do
+      expect { described_class.service_definition("nope") }.to raise_error(Hyrax::Pid::Error, /nope/)
     end
   end
 end
