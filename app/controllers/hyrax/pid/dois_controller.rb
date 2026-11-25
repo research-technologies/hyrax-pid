@@ -2,8 +2,11 @@
 
 module Hyrax
   module Pid
-    # Admin "Mint DOI" action, triggered from a work's show page.
+    # Admin DOI actions, triggered from a work's show page: mint (or update the
+    # metadata of) a draft DOI, and register it (make it findable).
     class DoisController < ::ApplicationController
+      PUBLIC = Hydra::AccessControls::AccessRight::VISIBILITY_TEXT_VALUE_PUBLIC
+
       def create
         work = Hyrax.query_service.find_by(id: params[:id])
         authorize! :manage, :pid
@@ -18,6 +21,9 @@ module Hyrax
         # Built here only for the flash summary; the registrar builds its own
         # copy, since Dispatcher returns the work rather than the registrar's record.
         metadata = Hyrax::Pid.configuration.data_cite.metadata_mapper.build(work)
+        # The registrar updates rather than mints when the work already has a
+        # DOI, so the flash needs to know which happened.
+        updating = existing_doi(work).present?
         begin
           work = Hyrax::Identifier::Dispatcher
                  .for(:doi, landing_page_url: method(:landing_page_url))
@@ -31,7 +37,31 @@ module Hyrax
         # Dispatcher persists but doesn't publish, so reindex here.
         Hyrax.publisher.publish("object.metadata.updated", object: work, user: current_user)
 
-        redirect_to [main_app, work], notice: t(".success", doi: Array(work.doi).first, summary: metadata_summary(metadata))
+        redirect_to [main_app, work], notice: t(updating ? ".updated" : ".success", doi: Array(work.doi).first, summary: metadata_summary(metadata))
+      rescue Valkyrie::Persistence::ObjectNotFoundError, Hyrax::ObjectNotFoundError
+        redirect_to main_app.root_path, alert: t(".not_found")
+      rescue Hyrax::Pid::Error => e
+        redirect_to [main_app, work], alert: t(updating ? ".update_failure" : ".failure", message: e.message)
+      end
+
+      # Takes the work's DOI one step along this tenant's workflow: to
+      # findable, or to registered first (see Hyrax::Pid::DataCite::Workflow).
+      # Only for public works: the DOI's landing page has to be visible, and a
+      # findable DOI can't be deleted.
+      def register
+        work = Hyrax.query_service.find_by(id: params[:id])
+        authorize! :manage, :pid
+        doi = existing_doi(work)
+        raise Hyrax::Pid::Error, "this work has no DOI yet" unless doi
+        raise Hyrax::Pid::Error, "only public works can be registered" unless work.visibility == PUBLIC
+
+        step = Hyrax::Pid::LifecycleStep.for(work.id)
+        raise Hyrax::Pid::Error, "this DOI is already findable" unless step
+
+        identifier = Hyrax::Pid::Service.minter_for!("datacite").transition(identifier: doi, event: step.event)
+        Hyrax::Pid::Registration.record!(resource_id: work.id, identifier: identifier)
+
+        redirect_to [main_app, work], notice: t(".success.#{step.name}", doi: identifier.value)
       rescue Valkyrie::Persistence::ObjectNotFoundError, Hyrax::ObjectNotFoundError
         redirect_to main_app.root_path, alert: t(".not_found")
       rescue Hyrax::Pid::Error => e
@@ -39,6 +69,14 @@ module Hyrax
       end
 
       private
+
+      # Same probe as Hyrax::Pid::Registrar#existing_identifier: flexible-schema
+      # attributes answer via method_missing, so respond_to? can't be used.
+      def existing_doi(work)
+        Array(work.public_send(:doi)).first.presence
+      rescue NoMethodError
+        nil
+      end
 
       # Built from the current request, so in Hyku it carries the tenant's own
       # host. locale: nil keeps Hyrax's ?locale= param out of a permanent URL.

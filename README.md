@@ -98,19 +98,50 @@ settings each time it's requested.
 ### Store the DOI on works
 
 Works need a single-valued `doi` attribute. With flexible metadata, add a `doi`
-property to your M3 profile; otherwise add one to your work models.
+property to your M3 profile; otherwise add one to your work models. Index it to
+Solr too: the buttons read it from there (`doi_ssi` by default; set
+`config.data_cite.solr_field` if yours differs).
 
-### Add the "Mint DOI" button
+### Add the DOI buttons
 
 The engine mounts itself at `/pid`, so no route changes are needed. Render the
-button wherever you want it, typically in an override of
+buttons wherever you want them, typically in an override of
 `app/views/hyrax/base/_show_actions.html.erb`:
 
 ```erb
-<%= render 'hyrax/pid/mint_button', presenter: presenter %>
+<%= render 'hyrax/pid/doi_actions', presenter: presenter %>
 ```
 
-The button only appears for admins, once DataCite has been configured, and once the **Mint DOI** feature
+This renders two buttons (each partial can also be rendered on its own):
+
+- `hyrax/pid/mint_button`: **Mint DOI**, which creates a *draft* DOI, or
+  **Update DOI Metadata** once the work has one.
+- `hyrax/pid/register_button`: takes the DOI one step along the tenant's
+  workflow (below). It only shows on public works (not under embargo or lease)
+  whose DOI isn't findable yet, and asks for confirmation, since registered and
+  findable DOIs can't be deleted.
+
+Each DOI's last known state is kept in the `hyrax_pid_registrations` table, so
+show pages don't call DataCite. DOIs minted before that table existed have no
+recorded state and are treated as drafts.
+
+### DOI workflow
+
+Admins choose a workflow per tenant on the DataCite settings page:
+
+| Workflow | Steps |
+|---|---|
+| **Draft → Findable** (default) | **Register DOI** makes a draft findable. |
+| **Draft → Registered → Findable** | **Register DOI** makes a draft *registered*: it resolves, but DataCite leaves it out of its search and metadata feeds. **Make DOI findable** then lists it publicly. |
+
+Either way, when a work with a findable DOI stops being public (made private, or
+put under embargo), `Hyrax::Pid::HideIdentifierJob` sends DataCite's `hide` event, which
+moves the DOI back to registered. Nothing happens automatically when the work is
+made public again: an admin uses the button. The job is queued from a listener on
+Hyrax's `object.acl.updated` event, and re-checks the saved work before calling
+DataCite.
+
+The buttons only appear for admins, once DataCite has been configured, and once the **Mint DOI** feature
 (`mint_doi`, off by default) is turned on in the dashboard's Features page
 (`/admin/features`). In Hyku
 this is per tenant. It also stays hidden while Hyrax's read-only mode is on.
@@ -120,6 +151,20 @@ on for themselves with a cookie. Admin rights are what restrict minting.
 
 Minting sends the work's page on the current host as the DOI's landing page
 `url`, which DataCite needs before a DOI can be made findable.
+
+### Test the connection
+
+Once a service is configured, **Test connection** on the PID services page checks
+the saved settings without minting anything. For DataCite that's two checks:
+
+1. The credentials: a `HEAD` request to the MDS API's DOI list (`mds.datacite.org/doi`,
+   or `mds.test.datacite.org/doi` in sandbox mode), which answers 401 to wrong ones.
+   Neither the REST API (which treats bad credentials as anonymous on reads) nor MDS's
+   per-DOI paths (which answer "404 DOI not found" whatever the credentials) can tell.
+2. The prefix: that it's listed on the repository's public record in the REST API.
+
+A custom `config.data_cite.client` needs a
+`#check_credentials(prefix:)` method for this to work.
 
 ### Mint from code
 

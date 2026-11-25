@@ -9,7 +9,7 @@ module Hyrax
         with_themed_layout "dashboard"
 
         before_action { authorize! :manage, Hyrax::Pid::Service }
-        before_action :load_service, only: %i[edit update destroy]
+        before_action :load_service, only: %i[edit update destroy check_connection]
         before_action :add_breadcrumbs
 
         rescue_from ActiveRecord::Encryption::Errors::Base do |error|
@@ -35,6 +35,17 @@ module Hyrax
         def destroy
           @service.destroy if @service.persisted?
           redirect_to admin_services_path, notice: t(".success", service: @definition.label)
+        end
+
+        # Checks the saved credentials (not unsaved form values).
+        def check_connection
+          unless @service.configured?
+            return redirect_to admin_services_path, alert: t(".not_configured", service: @definition.label)
+          end
+
+          result = @service.minter.check_connection
+          flash_key = result.ok? ? :notice : :alert
+          redirect_to admin_services_path, flash_key => t(".#{result.ok? ? 'success' : 'failure'}", service: @definition.label, message: result.message)
         end
 
         private

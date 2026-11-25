@@ -60,7 +60,12 @@ module Hyrax
       end
 
       def sandbox?
-        setting(definition.fields.find { |f| f.name == "sandbox" }) == true
+        setting(field("sandbox")) == true
+      end
+
+      # @return [Hyrax::Pid::DataCite::Workflow]
+      def workflow
+        Hyrax::Pid::DataCite::Workflow.new(setting(field("workflow")))
       end
 
       # @return [Hyrax::Pid::Minter]
@@ -78,6 +83,10 @@ module Hyrax
       end
 
       private
+
+      def field(name)
+        definition.fields.find { |f| f.name == name }
+      end
 
       def required_fields_present
         definition.missing(settings: settings || {}, secrets: secrets || {}).each do |name|

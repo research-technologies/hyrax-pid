@@ -10,10 +10,30 @@ en:
       dois:
         create:
           success: "Minted DOI %{doi}. Submitted to DataCite — %{summary}"
+          updated: "Updated DOI %{doi}. Resubmitted metadata to DataCite — %{summary}"
           not_found: "Could not find that record to mint a DOI."
           failure: "Could not mint a DOI: %{message}"
+          update_failure: "Could not update DOI: %{message}"
+        register:
+          success:
+            publish: "Registered DOI %{doi}: it's now findable, and DataCite lists it publicly."
+            register: "Registered DOI %{doi}: it now resolves, but DataCite doesn't list it publicly yet."
+            make_findable: "DOI %{doi} is now findable, and DataCite lists it publicly."
+          not_found: "Could not find that record to register its DOI."
+          failure: "Could not register the DOI: %{message}"
       mint_button:
         label: "Mint DOI"
+        update_label: "Update DOI Metadata"
+      register_button:
+        publish:
+          label: "Register DOI"
+          confirm: "Register this DOI and make it findable? DataCite will list it publicly, and a findable DOI can't be deleted, only hidden."
+        register:
+          label: "Register DOI"
+          confirm: "Register this DOI? It will resolve to this page, but DataCite won't list it publicly until it's made findable. A registered DOI can't be deleted."
+        make_findable:
+          label: "Make DOI findable"
+          confirm: "Make this DOI findable? DataCite will list it publicly, and a findable DOI can't be deleted, only hidden."
       admin:
         sidebar:
           services: "PID services"
@@ -25,6 +45,15 @@ en:
               username: "Repository account ID"
               password: "Password"
               sandbox: "Use the DataCite test system (sandbox)"
+              workflow: "DOI workflow"
+          options:
+            datacite:
+              workflow:
+                draft_findable: "Draft → Findable"
+                draft_registered_findable: "Draft → Registered → Findable"
+          hints:
+            datacite:
+              workflow: "What \"Register DOI\" does to a draft DOI. With the two-step workflow it first becomes registered (it resolves, but DataCite doesn't list it publicly), then a \"Make DOI findable\" button appears. Either way, a findable DOI is hidden again if its work stops being public."
           index:
             header: "PID services"
             intro: "Credentials for the services that mint persistent identifiers for this repository. Passwords are stored encrypted and never displayed."
@@ -38,6 +67,7 @@ en:
             production: "Production"
             edit: "Edit"
             remove: "Remove"
+            check_connection: "Test connection"
             remove_confirm: "Remove the %{service} settings? Minting through %{service} will stop until it is configured again."
           edit:
             header: "%{service} settings"
@@ -49,3 +79,7 @@ en:
             success: "%{service} settings saved."
           destroy:
             success: "%{service} settings removed."
+          check_connection:
+            success: "%{service}: %{message}"
+            failure: "%{service} connection failed: %{message}"
+            not_configured: "%{service} isn't set up yet, so there's nothing to test."

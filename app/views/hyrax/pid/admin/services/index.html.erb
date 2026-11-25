@@ -32,6 +32,11 @@
             <td><%= service&.updated_at %></td>
             <td class="text-right">
               <%= link_to t('.edit'), edit_admin_service_path(definition.key), class: 'btn btn-secondary btn-sm' %>
+              <% if service&.configured? %>
+                <%= button_to t('.check_connection'), check_connection_admin_service_path(definition.key),
+                      method: :post, class: 'btn btn-secondary btn-sm',
+                      form: { class: 'd-inline', data: { turbo: false } } %>
+              <% end %>
               <% if service %>
                 <%= button_to t('.remove'), admin_service_path(definition.key),
                       method: :delete, class: 'btn btn-danger btn-sm',
