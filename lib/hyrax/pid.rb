@@ -3,6 +3,7 @@
 require_relative "pid/version"
 require_relative "pid/error"
 require_relative "pid/identifier"
+require_relative "pid/connection_check"
 require_relative "pid/minter"
 require_relative "pid/registry"
 require_relative "pid/configuration"
@@ -10,6 +11,7 @@ require_relative "pid/service_definition"
 require_relative "pid/data_cite/client"
 require_relative "pid/data_cite/metadata_mapper"
 require_relative "pid/data_cite/minter"
+require_relative "pid/data_cite/workflow"
 
 module Hyrax
   module Pid
@@ -23,7 +25,9 @@ module Hyrax
           ServiceDefinition::Field.new(name: "username", type: :string, required: true),
           ServiceDefinition::Field.new(name: "password", type: :string, secret: true, required: true),
           # Defaults on so a newly configured service can't mint real DOIs by accident.
-          ServiceDefinition::Field.new(name: "sandbox", type: :boolean, default: true)
+          ServiceDefinition::Field.new(name: "sandbox", type: :boolean, default: true),
+          ServiceDefinition::Field.new(name: "workflow", type: :select,
+                                       options: DataCite::Workflow::KEYS, default: DataCite::Workflow::DEFAULT)
         ]
       )
     }.freeze
