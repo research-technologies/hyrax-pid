@@ -1,5 +1,8 @@
-<%# Render from a host's show-actions partial: render 'hyrax/pid/mint_button', presenter: presenter %>
+<%# Render from a host's show-actions partial: render 'hyrax/pid/mint_button', presenter: presenter
+    (or 'hyrax/pid/doi_actions' for this plus the "Register DOI" button).
+    Reads the DOI from Solr, so it doesn't load the work. %>
 <% if presenter.current_ability.can?(:manage, :pid) %>
-  <%= button_to t('.label'), hyrax_pid.mint_doi_path(presenter),
-      method: :post, class: 'btn btn-secondary', form: { data: { turbo: false } } %>
+  <% has_doi = Array(presenter.solr_document[Hyrax::Pid.configuration.data_cite.solr_field]).any?(&:present?) %>
+  <%= button_to t(has_doi ? '.update_label' : '.label'), hyrax_pid.mint_doi_path(presenter),
+      method: :post, class: 'btn btn-secondary', form: { class: 'd-inline', data: { turbo: false } } %>
 <% end %>

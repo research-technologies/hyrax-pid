@@ -25,6 +25,18 @@ RSpec.describe Hyrax::Pid::ServiceDefinition do
       expect(secrets).to eq("password" => "old")
     end
 
+    it "accepts a select value that's one of its options" do
+      settings, _secrets = merge("workflow" => "draft_registered_findable")
+
+      expect(settings).to include("workflow" => "draft_registered_findable")
+    end
+
+    it "ignores a select value that isn't one of its options" do
+      settings, _secrets = merge("workflow" => "anything_else")
+
+      expect(settings).not_to have_key("workflow")
+    end
+
     it "strips settings but not secrets" do
       settings, secrets = merge("prefix" => " 10.5555 ", "password" => " pass ")
 

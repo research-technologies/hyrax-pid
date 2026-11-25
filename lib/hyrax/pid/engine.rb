@@ -54,6 +54,13 @@ module Hyrax
         # (e.g. hyrax-doi's :datacite, which Hyku loads) are left alone.
         Hyrax.config.identifier_registrars[:doi] = Hyrax::Pid::Registrar
       end
+
+      # Once, not in to_prepare: a reload would subscribe a second copy. The
+      # listener lives in lib/, so reloading doesn't leave a stale class behind.
+      config.after_initialize do
+        require "hyrax/pid/listener"
+        Hyrax.publisher.subscribe(Hyrax::Pid::Listener.new)
+      end
     end
   end
 end

@@ -68,4 +68,40 @@ RSpec.describe Hyrax::Pid::DataCite::Minter do
       expect(identifier.state).to eq(:findable)
     end
   end
+
+  %w[register hide].each do |event|
+    describe "##{event}" do
+      it "updates the DOI with a #{event} event" do
+        expect(client).to receive(:call).with(
+          method: :put,
+          path: "/dois/10.1234/abcd",
+          body: {data: {type: "dois", attributes: {event: event}}}
+        ).and_return(datacite_response(state: "registered"))
+
+        expect(minter.public_send(event, identifier: "10.1234/abcd").state).to eq(:registered)
+      end
+    end
+  end
+
+  describe "#check_connection" do
+    it "asks the client to check the credentials against the prefix" do
+      result = Hyrax::Pid::ConnectionCheck.new(ok: true, message: "fine")
+      allow(client).to receive(:check_credentials).with(prefix: "10.1234").and_return(result)
+
+      expect(minter.check_connection).to eq(result)
+    end
+
+    it "fails cleanly for a client that can't check credentials" do
+      minter = described_class.new(prefix: "10.1234", username: "u", password: "p", client: ->(**) {})
+
+      expect(minter.check_connection).to have_attributes(ok?: false)
+    end
+
+    it "points the default client at the matching MDS host" do
+      minter = described_class.new(prefix: "10.1234", username: "u", password: "p", sandbox: true)
+
+      expect(minter.instance_variable_get(:@client).instance_variable_get(:@mds_host))
+        .to eq(described_class::SANDBOX_MDS_HOST)
+    end
+  end
 end

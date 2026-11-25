@@ -29,6 +29,12 @@ module Hyrax
         raise NotImplementedError
       end
 
+      # Checks the credentials work, without minting anything.
+      # @return [Hyrax::Pid::ConnectionCheck]
+      def check_connection
+        raise NotImplementedError
+      end
+
       # @return [Symbol] e.g. :doi, :handle, :ark
       def identifier_type
         raise NotImplementedError

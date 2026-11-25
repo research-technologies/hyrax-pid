@@ -5,9 +5,11 @@ module Hyrax
     # The admin-editable settings for one PID service. The settings page builds
     # its form from this, so adding a service means adding a definition, not views.
     class ServiceDefinition
+      # @!attribute type
+      #   :string, :boolean, or :select (one of #options)
       # @!attribute secret
       #   Stored encrypted and never shown again once saved.
-      Field = Struct.new(:name, :type, :secret, :required, :default, keyword_init: true)
+      Field = Struct.new(:name, :type, :secret, :required, :default, :options, keyword_init: true)
 
       TRUE_VALUES = %w[1 true on].freeze
 
@@ -39,6 +41,9 @@ module Hyrax
             secrets[field.name] = value unless value.empty?
           elsif field.type == :boolean
             settings[field.name] = TRUE_VALUES.include?(value)
+          elsif field.type == :select
+            # Anything not offered is ignored, keeping the stored value.
+            settings[field.name] = value if Array(field.options).include?(value)
           else
             settings[field.name] = value.strip
           end

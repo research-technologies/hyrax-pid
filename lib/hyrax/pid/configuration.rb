@@ -20,8 +20,15 @@ module Hyrax
         #     whether they're flexible-schema) vary per app.
         attr_accessor :field_mapping
 
+        # @!attribute solr_field
+        #   @return [String] the Solr field a work's DOI is indexed in, read by
+        #     the show-page buttons to tell "Mint" from "Update" without
+        #     loading the work. Defaults to "doi_ssi".
+        attr_accessor :solr_field
+
         def initialize
           @field_mapping = {}
+          @solr_field = "doi_ssi"
         end
 
         # @return [Hyrax::Pid::DataCite::MetadataMapper]

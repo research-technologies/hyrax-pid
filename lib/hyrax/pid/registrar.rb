@@ -7,7 +7,7 @@ module Hyrax
     class Registrar < ::Hyrax::Identifier::Registrar
       Record = Struct.new(:identifier)
 
-      attr_reader :key, :attribute, :mapper, :landing_page_url
+      attr_reader :key, :attribute, :mapper, :landing_page_url, :recorder
 
       # @param key       [Symbol] Hyrax::Pid::Registry key
       # @param attribute [Symbol] the work attribute holding any existing identifier
@@ -16,17 +16,22 @@ module Hyrax
       #   DataCite requires one before a DOI can be made findable. Passed per call
       #   rather than configured, because the right host (per tenant in Hyku)
       #   is only known from the current request.
+      # @param recorder  [#record!, nil] told each identifier the service hands
+      #   back (with its state); defaults to Hyrax::Pid::Registration when the
+      #   engine is loaded
       # @param builder   accepted for Hyrax::Identifier::Registrar's interface; unused,
       #   since remote services (DataCite, RAiD) mint the identifier string themselves
       def initialize(key: :doi, attribute: :doi,
                      mapper: Hyrax::Pid.configuration.data_cite.metadata_mapper,
                      landing_page_url: nil,
+                     recorder: nil,
                      builder: nil)
         super(builder: builder)
         @key = key
         @attribute = attribute
         @mapper = mapper
         @landing_page_url = landing_page_url
+        @recorder = recorder || default_recorder
       end
 
       # @param object [Object] the work
@@ -43,10 +48,15 @@ module Hyrax
             minter.mint(metadata: metadata)
           end
 
+        recorder&.record!(resource_id: object.id, identifier: identifier)
         Record.new(identifier.value)
       end
 
       private
+
+      def default_recorder
+        Hyrax::Pid::Registration if defined?(Hyrax::Pid::Registration)
+      end
 
       def minter
         Hyrax::Pid::Registry.minter_for(key)

@@ -1,0 +1,13 @@
+<%# The DOI's next lifecycle step ("Register DOI", or "Make DOI findable" in the
+    draft -> registered -> findable workflow). Only for public works (not under
+    embargo or lease) that have a DOI that isn't findable yet. DOIs minted before
+    states were recorded count as drafts. See Hyrax::Pid::LifecycleStep. %>
+<% if presenter.current_ability.can?(:manage, :pid) &&
+      presenter.solr_document.visibility == Hydra::AccessControls::AccessRight::VISIBILITY_TEXT_VALUE_PUBLIC &&
+      Array(presenter.solr_document[Hyrax::Pid.configuration.data_cite.solr_field]).any?(&:present?) &&
+      (step = Hyrax::Pid::LifecycleStep.for(presenter.id)) %>
+  <%= button_to t(".#{step.name}.label"), hyrax_pid.register_doi_path(presenter),
+      method: :post, class: 'btn btn-secondary',
+      form: { class: 'd-inline', data: { turbo: false } },
+      data: { confirm: t(".#{step.name}.confirm") } %>
+<% end %>

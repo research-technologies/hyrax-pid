@@ -92,6 +92,17 @@ RSpec.describe Hyrax::Pid::Registrar do
       registrar.register!(object: work)
     end
 
+    it "records the identifier the service hands back" do
+      recorder = double("recorder")
+      registrar = described_class.new(mapper: mapper, recorder: recorder)
+      work = Struct.new(:id, :doi).new("abc", nil)
+      allow(minter).to receive(:mint).and_return(minted)
+
+      expect(recorder).to receive(:record!).with(resource_id: "abc", identifier: minted)
+
+      registrar.register!(object: work)
+    end
+
     it "propagates mapper errors without touching the minter" do
       allow(mapper).to receive(:build).and_raise(Hyrax::Pid::Error, "creator is blank")
       expect(minter).not_to receive(:mint)

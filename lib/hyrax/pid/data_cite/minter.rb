@@ -13,6 +13,11 @@ module Hyrax
       class Minter < Hyrax::Pid::Minter
         PRODUCTION_HOST = "https://api.datacite.org"
         SANDBOX_HOST = "https://api.test.datacite.org"
+        # DataCite's older MDS API, used only to check credentials: unlike the
+        # REST API, which treats bad credentials as anonymous on reads, it
+        # answers them with a 401.
+        PRODUCTION_MDS_HOST = "https://mds.datacite.org"
+        SANDBOX_MDS_HOST = "https://mds.test.datacite.org"
 
         # @param prefix [String] DOI prefix, e.g. "10.1234"
         # @param username [String]
@@ -27,7 +32,12 @@ module Hyrax
           @username = username
           @password = password
           @host = sandbox ? SANDBOX_HOST : PRODUCTION_HOST
-          @client = client || Hyrax::Pid::DataCite::Client.new(host: @host, username: username, password: password)
+          @client = client || Hyrax::Pid::DataCite::Client.new(
+            host: @host,
+            mds_host: sandbox ? SANDBOX_MDS_HOST : PRODUCTION_MDS_HOST,
+            username: username,
+            password: password
+          )
         end
 
         def identifier_type
@@ -59,11 +69,42 @@ module Hyrax
           build_identifier(response)
         end
 
-        # Convenience: moves a DOI from draft to findable.
+        # Moves a DOI from draft (or registered) to findable.
         # @param identifier [Hyrax::Pid::Identifier, String]
         # @return [Hyrax::Pid::Identifier]
         def publish(identifier:)
-          update(identifier: identifier, metadata: {event: "publish"})
+          transition(identifier: identifier, event: "publish")
+        end
+
+        # Draft -> registered: the DOI resolves but stays out of DataCite's
+        # search and metadata feeds.
+        # @param identifier [Hyrax::Pid::Identifier, String]
+        # @return [Hyrax::Pid::Identifier]
+        def register(identifier:)
+          transition(identifier: identifier, event: "register")
+        end
+
+        # Findable -> registered, e.g. when the work stops being public. A
+        # findable DOI can't be deleted, so this is the only way back.
+        # @param identifier [Hyrax::Pid::Identifier, String]
+        # @return [Hyrax::Pid::Identifier]
+        def hide(identifier:)
+          transition(identifier: identifier, event: "hide")
+        end
+
+        # @param event [String] a DataCite event: "publish", "register" or "hide"
+        # @return [Hyrax::Pid::Identifier]
+        def transition(identifier:, event:)
+          update(identifier: identifier, metadata: {event: event})
+        end
+
+        # @return [Hyrax::Pid::ConnectionCheck]
+        def check_connection
+          unless @client.respond_to?(:check_credentials)
+            return Hyrax::Pid::ConnectionCheck.new(ok: false, message: "#{@client.class} can't check credentials")
+          end
+
+          @client.check_credentials(prefix: @prefix)
         end
 
         private
