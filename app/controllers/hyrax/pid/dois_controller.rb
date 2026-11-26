@@ -10,13 +10,7 @@ module Hyrax
       def create
         work = Hyrax.query_service.find_by(id: params[:id])
         authorize! :manage, :pid
-        # A flexible-schema work's schema_version is only bumped when it's saved
-        # through Hyrax::Forms::ResourceForm, so a work last saved before the
-        # `doi` property existed can be stuck on a version without it. Bump it
-        # here, as resaving through the edit form would.
-        if work.respond_to?(:schema_version=)
-          work.schema_version = Hyrax::FlexibleSchema.current_schema_id
-        end
+        work = with_current_schema(work)
 
         # Built here only for the flash summary; the registrar builds its own
         # copy, since Dispatcher returns the work rather than the registrar's record.
@@ -69,6 +63,20 @@ module Hyrax
       end
 
       private
+
+      # A flexible-schema work gets its attributes when it's loaded, from the
+      # schema_version saved on it, so a work last saved before the `doi`
+      # property existed has no `doi=`. Setting schema_version on the loaded
+      # object doesn't change that; it has to be rebuilt, as
+      # Hyrax::Forms::ResourceForm does when the edit form is opened.
+      def with_current_schema(work)
+        return work unless work.respond_to?(:flexible?) && work.flexible?
+
+        current = Hyrax::FlexibleSchema.current_schema_id
+        return work if work.schema_version.to_s == current.to_s
+
+        work.class.new(work.attributes.dup.merge(schema_version: current))
+      end
 
       # Same probe as Hyrax::Pid::Registrar#existing_identifier: flexible-schema
       # attributes answer via method_missing, so respond_to? can't be used.
